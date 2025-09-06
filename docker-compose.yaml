@@ -1,0 +1,55 @@
+
+services: #định nghĩa các container image
+  db: 
+    image: mysql:8.0 # xử dụng mysql version 8.0
+    container_name: mysql #tên container
+    environment: #định nghĩa các biến môi trường
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "3306:3306" # ánh xạ cổng 3306 của container ra ngoài máy chủ
+    restart: always # tự động khởi động lại container khi bị tắt
+    healthcheck: #kiểm tra tình tragnj container đã realy hay chưa
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    networks: # đảm bảo host name là db để app django kết nối
+      demo_workshop_network:
+        aliases:
+          - db     
+    volumes:
+      - db_data:/var/lib/mysql  # lưu dữ liệu ra ngoài máy chủ để không bị mất khi container bị xóa
+      # 2) Chạy file SQL lần KHỞI TẠO ĐẦU TIÊN
+      #   (file query nằm cùng cấp với docker-compose.yaml tên là database.sql)
+      - ./database.sql:/docker-entrypoint-initdb.d/init_lms_db.sql:ro
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: demo_workshop #tên container
+    environment:
+      DJANGO_DB_HOST: db
+      DJANGO_DB_NAME: ${MYSQL_DATABASE}
+      DJANGO_DB_USER: ${MYSQL_USER}
+      DJANGO_DB_PASSWORD: ${MYSQL_PASSWORD}
+      DJANGO_DB_PORT: 3306
+    depends_on:
+     db:
+        condition: service_healthy    # chờ DB healthy rồi mới start app
+    ports:
+      - "8080:8080" # ánh xạ cổng 8000 của container ra ngoài máy chủ
+    restart: always # tự động khởi động lại container khi bị tắt
+    networks:
+      - demo_workshop_network
+
+networks:
+  demo_workshop_network: {}
+
+# BẮT BUỘC có khi dùng named volume ở trên
+volumes:
+  db_data: {}
+
+# không định nghĩa network sẻ xử dụng network mặc định của docker-compose

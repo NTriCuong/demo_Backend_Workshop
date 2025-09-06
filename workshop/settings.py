@@ -80,17 +80,19 @@ WSGI_APPLICATION = 'workshop.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+import os
 DATABASES = {
     'default': {
        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'todo_app',          # Tên database vừa tạo
-        'USER': 'root',              # Tài khoản MySQL
-        'PASSWORD': '',# Mật khẩu MySQL
-        'HOST': 'localhost',         # Nếu DB chạy trên máy khác thì đổi IP
-        'PORT': '3306',              # Cổng mặc định của MySQL
-        'OPTIONS': {
-            'charset': 'utf8mb4',    # Để hỗ trợ tiếng Việt và emoji
-        }
+        "NAME": os.getenv("DJANGO_DB_NAME", "todo_app"),
+        "USER": os.getenv("DJANGO_DB_USER", "todo_user"),
+        "PASSWORD": os.getenv("DJANGO_DB_PASSWORD", ""),
+        "HOST": os.getenv("DJANGO_DB_HOST", "db"),   # tên service MySQL trong compose
+        "PORT": os.getenv("DJANGO_DB_PORT", "3306"), # bạn có thể thêm DB_PORT vào compose/.env nếu muốn
+        "OPTIONS": {
+            "charset": "utf8mb4",
+            "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+        },
     }
 }
 

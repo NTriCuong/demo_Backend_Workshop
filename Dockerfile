@@ -1,13 +1,27 @@
-# đay là file hướng dẫn tạo image docker 
-# 1. Sử dụng image cơ sở là Python 3.13.3 trên nền tảng ARM64 dành cho mac silicon
-FROM --platform=linux/arm64 python:3.13.3
-# 2. Thiết lập thư mục làm việc bên trong container
+# syntax=docker/dockerfile:1
+FROM python:3.13-slim
+
+# Log ra ngay & không tạo .pyc
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
 WORKDIR /app
-# 3. Copy toàn bộ code từ máy host (Mac) vào container
+
+# Lib hệ thống để build mysqlclient
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    default-libmysqlclient-dev build-essential pkg-config \
+ && rm -rf /var/lib/apt/lists/*
+
+# Cài Python deps từ requirements.txt (hãy đảm bảo đã có drf-spectacular hoặc drf-yasg ở đây nếu bạn dùng)
+COPY requirements.txt .
+RUN python -m pip install --upgrade pip \
+ && pip install --no-cache-dir -r requirements.txt
+
+# Copy code
 COPY . .
-# 4. Cài đặt Django và các thư viện cần thiết cài django và djangorestframework
-RUN pip install --no-cache-dir django djangorestframework
-# 5. Mở cổng 8080 để truy cập ứng dụng Django
+
+# Mở cổng dev server
 EXPOSE 8080
-# 6. Chạy lệnh để khởi động ứng dụng Django
-CMD ["python3", "manage.py", "runserver", "0.0.0.0:8080"]
+
+# Chạy Django dev server (phù hợp môi trường dev)
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8080"]
